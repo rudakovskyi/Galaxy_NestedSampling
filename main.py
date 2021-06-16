@@ -49,10 +49,10 @@ if __name__ == "__main__":
                 with open(fout, 'wb') as fn:
                     pickle.dump(dresults, fn)
 
-                if plot:          
-                    fig, ax = dyplot.cornerplot(dresults, labels=LGenerator.parameters)  
-                    fig.savefig('{}/corner_plot/{}_NS_{}.png'.format(model, galaxy_name, lum_model))
-                    plt.close()
+            if plot:          
+                fig, ax = dyplot.cornerplot(dresults, labels=LGenerator.parameters)  
+                fig.savefig('{}/corner_plot/{}_NS_{}.png'.format(model, galaxy_name, lum_model))
+                plt.close()
     
             logz = dresults.get(['logz'][-1])[-1]
             logzerr = dresults.get(['logzerr'][-1])[-1]
