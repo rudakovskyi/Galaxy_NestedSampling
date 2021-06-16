@@ -1,0 +1,98 @@
+Title: SPARC. I. Mass Models for 175 Disk Galaxies with
+       Spitzer Photometry and Accurate Rotation Curves
+Authors: Federico Lelli, Stacy S. McGaugh and James M. Schombert
+Table: Galaxy Sample
+================================================================================
+Byte-by-byte Description of file: Table1.mrt
+--------------------------------------------------------------------------------
+   Bytes Format Units         Label   Explanations
+--------------------------------------------------------------------------------
+   1- 11 A11    ---           Galaxy  Galaxy Name
+  12- 13 I2     ---           T       Hubble Type (1)
+  14- 19 F6.2   Mpc           D       Distance
+  20- 24 F5.2   Mpc         e_D       Mean error on D
+  25- 26 I2     ---         f_D       Distance Method (2)
+  27- 30 F4.1   deg           Inc     Inclination
+  31- 34 F4.1   deg         e_Inc     Mean error on Inc
+  35- 41 F7.3   10+9solLum    L[3.6]  Total Luminosity at [3.6]
+  42- 48 F7.3   10+9solLum  e_L[3.6]  Mean error on L[3.6]
+  49- 53 F5.2   kpc           Reff    Effective Radius at [3.6]
+  54- 61 F8.2   solLum/pc2    SBeff   Effective Surface Brightness at [3.6]
+  62- 66 F5.2   kpc           Rdisk   Disk Scale Length at [3.6]
+  67- 74 F8.2   solLum/pc2    SBdisk  Disk Central Surface Brightness at [3.6]
+  75- 81 F7.3   10+9solMass   MHI     Total HI mass
+  82- 86 F5.2   kpc           RHI     HI radius at 1 Msun/pc2
+  87- 91 F5.1   km/s          Vflat   Asymptotically Flat Rotation Velocity
+  92- 96 F5.1   km/s        e_Vflat   Mean error on Vflat
+  97- 99 I3     ---           Q       Quality Flag (3)
+ 100-113 A14    ---           Ref.    References for HI and Ha data (4)
+--------------------------------------------------------------------------------
+Note (1):
+ 0 = S0,  1 = Sa, 2 = Sab, 3 = Sb, 4 = Sbc, 5 = Sc,
+ 6 = Scd, 7 = Sd, 8 = Sdm, 9 = Sm, 10 = Im, 11 = BCD
+Note (2):
+ 1 = Hubble-Flow assuming H0=73 km/s/Mpc and correcting for Virgo-centric infall
+ 2 = Magnitude of the Tip of the Red Giant Branch
+ 3 = Cepheids Magnitude-Period Relation
+ 4 = Ursa Major Cluster of Galaxies
+ 5 = Supernovae Light Curve
+Note (3):
+ 1 = High, 2 = Medium, 3 = Low
+Note (4):
+ Ba05 = Barbieri, C.V. et al. 2005, A&A, 439, 947
+ BC04 = Begum, A. & Chengalur, J.N. 2004, A&A, 424, 509
+ Be87 = Begeman, K.G. 1987, PhD thesis, University of Groningen
+ Be91 = Begeman, K.G. et al. 1991, MNRAS, 249, 523 
+ Bl99 = Blais-Ouellette, S. et al. 1999, AJ, 118, 2123
+ Bl04 = Blais-Ouellette, S. et al. 2004, A&A, 420, 147
+ Bm03 = Begum, A. et al. 2003, New A, 8, 267
+ Bo08 = Boomsma, R. et al. 2008, A&A, 490, 555
+ Bt06 = Battaglia, G. et al. 2006, A&A, 447, 49
+ Br92 = Broeils, A.H. 1992, PhD thesis, University of Groningen
+ Ca88 = Carignan, C. et al. 1988, AJ, 95, 37
+ Ca90 = Carignan, C. & Puche, D. 1990a, AJ, 100, 394
+ CB89 = Carignan, C. & Beaulieu, S. 1989, AJ, 347, 192
+ CP90 = Carignan, C. & Puche, D. 1990b, AJ, 100, 641
+ CG91 = Casertano, S. & van Gorkom, J.H. 1991, ApJ, 101, 1231
+ Ch06 = Chemin, L. et al. 2006, AJ, 132, 2527
+ Co91 = Cote, S. et al. 1991, AJ, 102, 904
+ Co00 = Cote, S. et al. 2000, AJ, 120, 3027
+ Da06 = Daigle, O. et al. 2006, MNRAS, 367, 469 
+ dB96 = de Blok, W.J.G. et al. 1996, MNRAS, 283, 18
+ dB97 = de Blok, W.J.G. & McGaugh, S.S. 1997, MNRAS, 290, 533
+ dB01 = de Blok, W.J.G. et al. 2001, AJ, 122, 2396
+ dB02 = de Blok, W.J.G. & Bosma, A. 2002, A&A, 385, 816
+ Di08 = Dicaire, I. et al. 2008, MNRAS, 385, 553
+ El10 = Elson, E.C. et al. 2010, MNRAS, 404, 2061
+ Fr11 = Fraternali, F. et al. 2011, A&A, 531, A64
+ Ge04 = Gentile, G. et al. 2004, MNRAS, 351, 903
+ Ge07 = Gentile, G. et al. 2007, MNRAS, 375, 199
+ Ha14 = Hallenbeck, G. et al. 2014, AJ, 148, 69
+ JC90 = Jobin, M. & Carignan, C. 1990, AJ, 100, 648 
+ Ke07 = Kepley, A. A. et al. 2007, AJ, 133, 2242
+ KN08 = Kuzio de Naray, R. et al. 2008, ApJ, 676, 920 
+ La90 = Lake, G. et al. 1990, AJ, 99, 547
+ Le12 = Lelli, F. et al. 2012, A&A, 544, A145 
+ Le14 = Lelli, F. et al. 2014, A&A, 566, A71
+ MC94 = Martimbeau, N. & Carignan, C. 1994, AJ, 107, 543
+ No05 = Noordermeer, E. et al. 2005, A&A, 442, 137
+ No07 = Noordermeer, E. et al. 2007, MNRAS, 376, 1513
+ Pu91 = Puche, D. et al. 1991, AJ, 101, 447
+ RA85 = Roelfsema, P.R. & Allen, R.J. 1985, A&A, 146, 213
+ Rh96 = Rhee, M.H. & vanAlbada, T.S. 1996, A&AS, 115, 407
+ Ri15 = Richards, E.E. et al. 2015, MNRAS, 449, 3981
+ SA87 = Sancisi, R. & vanAlbada, T.S. 1987, in IAU Symp. 117, p. 67
+ Sa96 = Sanders, R.H. 1996, ApJ, 437, 117
+ Si03 = Simon, J.D. et al. 2003, 596, 957
+ SV98 = Sanders, R.H. & Verheijen, M.A.W. 1998, ApJ, 503, 97
+ SG06 = Spekkens, K. & Giovanelli, R. 2006, AJ, 132, 1426
+ Sw02 = Swaters, R.A. 2002, A&A, 390, 829
+ Sw09 = Swaters, R.A. 2009, A&A, 493, 871
+ Tr09 = Trachternarch, C. et al. 2009, A&A, 505, 577
+ Vd99 = Verheijen, M.A.W. & de Blok, W.J.G. 1999, Ap&SS, 269, 673
+ VH93 = van der Hulst, J.M. et al. 1993, AJ, 106, 548
+ VM97 = Verdes-Montenegro, L. et al. 1997, A&A, 321, 754
+ VS01 = Verheijen, M.A.W. & Sancisi, R. 2001, A&A, 370, 765
+ vZ97 = van Zee, L. 1997, AJ, 113, 1618
+ Wa97 = Walsh, W. et al. 1997, AJ, 113, 1591.
+--------------------------------------------------------------------------------
