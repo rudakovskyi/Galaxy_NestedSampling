@@ -35,10 +35,8 @@ if __name__ == "__main__":
     
             nlive = 300
 
-            processes = 1
-            pool = None
-            if True:
-            #with Pool(processes=processes) as pool:
+            processes = 8
+            with Pool(processes=processes) as pool:
                 dsampler = dynesty.DynamicNestedSampler(LGenerator.log_likelihood, LGenerator.ptform, ndim = LGenerator.ndim, nlive = nlive, pool = pool, queue_size = processes)
                 dsampler.run_nested(print_progress=True)
             dresults = dsampler.results
