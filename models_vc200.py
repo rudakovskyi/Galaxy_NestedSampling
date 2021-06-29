@@ -60,7 +60,8 @@ class Model:
 
     def inverse_transformation(self, theta):
 
-        v200, c200 = theta[:self.ndim]
+        #v200, c200 = theta[:self.ndim]
+        v200, c200 = theta[:2]
         r0 = v200 / (10 * H0 * c200)
         rho0 = 200 * rho_crit * c200**3 / (3 * self.g(c200, theta))       
         return r0, rho0
@@ -68,11 +69,13 @@ class Model:
 
     def direct_transformation(self, theta):
 
-        r0, rho0 = theta[:self.ndim]
-        theta0 = [None, None]
+        #r0, rho0 = theta[:self.ndim]
+        r0, rho0 = theta[:2]
+        #theta0 = [None, None]  # !!! test this point 
    
         def eq(x):
-            return rho0 * self.g(x, theta0) - 200 * rho_crit * x**3 / 3
+            #return rho0 * self.g(x, theta0) - 200 * rho_crit * x**3 / 3
+            return rho0 * self.g(x, theta) - 200 * rho_crit * x**3 / 3   # !!! test transfromation correctness !!!
 
         #x = np.arange(10**-3, 50, 10**-3)
         #y = np.array([eq(_x) for _x in x])
@@ -118,9 +121,62 @@ class NFW(Model):
         return v200 * (self.g(x) / self.g(c200)) ** 0.5
 
     def density(self, r, theta):
-        r0, rho0 = self.inverse_transformation(theta)
+        r0, rho0 = self.inverse_transformation(theta)[:2]
         return rho0 / ((r/r0) * (1 + r/r0) ** 2)
 
+
+
+class coreNFW(NFW):
+
+    def __init__(self):
+        super().__init__()
+        self.ndim = 4
+        self.parameters += ['$n$', r'$\beta_c$']
+
+    def initial(self, r_inf, v_inf):
+        v200_init = v_inf
+        c200_init = 1 
+        n_init = 0
+        beta_init = 0.1
+        return [v200_init, c200_init, n_init, beta_init]  
+
+    def bounds(self):
+        return [[10, 500], [0, 1000], [0, 1], [0, 1]]
+
+    def priors(self):
+        return ['uniform', 'uniform', 'uniform', 'uniform']
+
+    def sigma(self):
+        return [0, 0, 0, 0]
+
+    def g(self, x, theta):
+        v200, c200, n, beta = theta[:self.ndim]
+        return super().g(x) * (np.tanh(x/beta))**n
+
+    def velocity(self, r, theta):
+        v200, c200, n, beta = theta[:self.ndim]
+        x = r * 10 * H0 * c200 / v200 
+        return v200 * (self.g(x, theta) / self.g(c200, theta)) ** 0.5
+
+    def density(self, r, theta):
+        r0, rho0, n, beta = self.inverse_transformation(theta)
+
+        rc = beta * r0
+        x = r / r0 
+        f = np.tanh(r/rc)
+
+        return super().density(r, theta) * (np.tanh(r/rc))**n +\
+           n * (f**(n-1)) * (1 - f**2) * rho0 * r0**3 * (np.log(1 + x) - x / (1 + x)) / (r**2 * rc)
+
+    def inverse_transformation(self, theta):
+        v200, c200, n, beta = theta[:self.ndim]
+        r0, rho0 = super().inverse_transformation(theta) 
+        return r0, rho0, n, beta
+
+    def direct_transformation(self, theta):
+        r0, rho0, n, beta = theta[:self.ndim]        
+        v200, c200 = super().direct_transformation(theta)
+        return v200, c200, n, beta
 
 
 
@@ -214,16 +270,15 @@ class FDM(Model):
         theta0 = [None, None, alpha, beta]
  
         def eq(x):
-            return rhos * self.g(x, theta0) - 200 * rho_crit * x**3 / 3
+            return rhos * self.g(x, theta0)  - 200 * rho_crit * x**3 / 3
 
-        #x = np.arange(10**-3, 10, 10**-3)
+        #x = np.arange(10**-3, 1000, 10**-3)
         #y = np.array([eq(_x) for _x in x])
-        #z = np.array([0 for _x in x])
         #plt.plot(x, y)
-        #plt.plot(x, z)
         #plt.show()
 
-        c200 = scipy.optimize.broyden1(eq, [100], f_tol=1e-6)[0]
+        c200 = scipy.optimize.broyden1(eq, [100], f_tol=1e-10)[0]
+        #print('equation in direct: ', c200)
         v200 = 10 * H0 * c200 * rs       
         return v200, c200, alpha, beta
 
@@ -260,40 +315,116 @@ class FDM_scaled(FDM):
         return [[10, 500], [0.01, 100], [1, 7]]
 
 
-    def scaling(self, v200, m22, alpha):
+    #def scaling(self, v200, m22, alpha):
+    def scaling(self, theta):
+        print(theta)
+        v200, m22, alpha = theta[:self.ndim]
 
         #c200 = v200**2 * m22 / (4.36 * 1000 * H0 * (10*H0*G_N)**(1/3))
-        c200 = v200**2 * m22 * rho_crit**(1/3) / (4.63 * 1000 * H0**2 )
 
-        print('c200:', c200)
+        #c200 = v200**2 * m22 * rho_crit**(1/3) / (4.63 * 1000 * H0**2 )
+        #c200 = 5.25 * m22 * v200**2 * rho_crit**(1/3) / (10**8 * H0**2)
+        #c200 = 5.28 * m22 * v200**2 * rho_crit**(1/3) / (100 * H0**2)
 
-        def eq(b):
-            theta = [v200, c200, alpha, b]
-            #return 200 * rho_crit / 3 * self.g(c200, theta) - 1.9 * H0**4 * c200 / ( m22**2 * v200**4)
-            #return rho_crit / self.g(c200, theta) - 2.85 * c200 * H0**4 / (m22**2 * v200**4)
-            #return 2.85 * self.g(c200, theta) - rho_crit * m22**2 * v200**4 / (c200 * H0**4)
-            return 2.85 * self.g(c200, theta)
+        #c200 = 0.536 * m22 * v200**2 * rho_crit**(1/3) / H0**2
+        #c200 = 0.0536 * m22 * v200**2 * rho_crit**(1/3) / H0**2
+
+        #r200 = 186.7 / (m22 * rs * rho_crit^(1/3))
+        #c200 = m22 * v200**2 * rho_crit^(1/3) / (0.1867 * 100 * H0**2)
+
+        c200 = (0.0537 * m22 * v200**2 * rho_crit**(1/3)) / (H0**2)
+
+        if c200 < alpha:
+            beta = 1 # the profile containe only FDM core in this case and do not depends on beta 
+        else:
+            #print('last step before fail')
+            def eq(b):
+                theta = [v200, c200, alpha, b]
+                #return rho_crit / self.g(c200, theta) - (57 / 20) * c200 * H0**4 / (m22**2 * v200**4)
+                #return self.g(c200, theta) - (0.350877 * m22**2 * rho_crit * v200**4) / (c200 * H0**4)
+                
+                #return 200 * rho_crit * 10**9 / (3 * c200 * self.g(c200, theta)) - 1.9 * 100 * H0**4 / (m22**2 * v200**4)
+                #return 200 * rho_crit * 10**9 / (3 * c200**2 * self.g(c200, theta)) - 1.9 * 100 * H0**4 / (m22**2 * v200**4) # is this correct??
+
+                return self.g(c200, theta) * c200 - (0.350877 * m22**2 * rho_crit * v200**4) / (c200 * H0**4)
+
+            x = np.arange(0.01, 10000, 0.1) 
+            y = np.array([eq(_x) for _x in x])
+            plt.plot(x, y)
+            plt.show()
+
+            beta = scipy.optimize.broyden1(eq, [100], f_tol=1e-10)[0]  # !!! non-convergence error
+
+        #return c200, beta
+        return v200, c200, alpha, beta
+    
+    def scaling_rrho(self, theta):
+
+        rs, m22, alpha = theta[:self.ndim]
+        rhos = 1.9 * 0.01 / (m22**2 * rs**4)
+
+        M200 = 5.42 * 10**9 / (m22**3 * rs**3) 
+        r200 = 186.7 / (m22 * rs * rho_crit**(1/3)) / 1000
+        #r200 = (3 * M200/(4 * np.pi * 200 * rho_crit * 10**9))**(1/3)
+
+        #c200 = 1 / (53.6 * rs**2 * m22 * rho_crit**(1/3))
+        #c200 = 0.186 / (m22 * rho_crit**(1/3) * rs**2)
+
+        c200 = r200 / rs
+ 
+        if c200 < alpha:
+            beta = 1
+        else:
+            def eq(b):
+                #theta =  [None, c200, alpha, b]
+                theta = [None, None, alpha, b]
+                #return self.g(c200, theta) -  0.434686 / (rhos * m22**3 * rs**6)
+                #return 4 * np.pi * rhos * rs**3 * self.g(c200, theta) - M200 / 10**9 
+                return 4 * np.pi * rhos * rs**3 * self.g(c200, theta) * c200 - M200 / 10**9  # ??? is this correct ???
+
+            x = np.arange(10**-3, 1000, 0.1)
+            y = np.array([eq(_x) for _x in x])
+            plt.plot(x, y)
+            plt.show()
+
+            beta = scipy.optimize.broyden1(eq, [100], f_tol=1e-10)[0]
+
+        rNFW = rs * beta
+        return rs, rhos, alpha, rNFW
 
 
-        x = np.arange(1, 10**3, 1)
-        y = np.array([eq(_x) for _x in x])
-        #z = np.array([0 for _x in x])
-        plt.plot(x, y)
-        #plt.plot(x, z)
-        plt.show()
+    def inv_scaling(self, theta): 
+        v200, c200, alpha, beta = theta[:4]
+        #m22 = (c200 * H0**2) / (0.536 * v200**2 * rho_crit**(1/3))
+        #m22 = (c200 * H0**2) / (0.0536 * v200**2 * rho_crit**(1/3))
 
-        beta = scipy.optimize.broyden1(eq, [100000], f_tol=1e-6)[0]
-        print('beta', beta)
-        return c200, beta
+        #rs = v200 / (10 * H0 * c200)
+        #rhos = 200 * rho_crit * c200**3 / (3 * self.g(c200, theta))
+        #rhos = 200 * rho_crit * c200**3 / (3 * self.g(c200, theta) * c200) # is this correct ?? 
+
+        #m22 = np.sqrt(1.9 * 0.01 / (rhos * rs**4))
+
+        m22 = (1.68819 * np.sqrt(c200) * H0**2 * np.sqrt(self.g(c200, theta))) / (np.sqrt(rho_crit) * v200**2)
+        return v200, m22, alpha
+
+        #return v200, m22, alpha
+
+    def inv_scaling_rrho(self, theta):
+        rs, rhos, alpha, rNFW = theta[:4]
+        #m22 = (1.9 * 0.01) / (rhos * rs**4)       
+        #m22 = 0.1378 / (rs**2 * rhos**(1/2))
+        #m22 = np.sqrt(1.9 * 0.01 / (rhos * rs**4))
+        m22 = 0.13784 / (np.sqrt(rhos) *rs^2)
+        return rs, m22, alpha
+
+    #def original_param(self, theta):
+    #    return self.scaling(theta[:self.ndim]) # v200, c200, alpha, beta
 
 
-    def original_param(self, theta):
+    #def original_rrho_param(self, theta):
+    #    return self.scaling_rrho(theta[:self.ndim]) # rs, rhos, alpha, rNFW
 
-        v200, m22, alpha = theta[:self.ndim]
-        c200, beta = self.scaling(v200, m22, alpha)
-        theta0 = v200, c200, alpha, beta
 
-        return theta0
 
     #def scalingsB(self, alpha = 3, beta = 100):
 
@@ -313,7 +444,8 @@ class FDM_scaled(FDM):
         #c200, beta = self.scaling(v200, m22, alpha)
         #thata0 = v200, c200, alpha, beta
 
-        theta0 = self.original_param(theta)
+        #theta0 = self.original_param(theta)
+        theta0 = self.scaling(theta[:self.ndim]) # v200, c200, alpha, beta
 
         #x = r * 10 * H0 * c200 / v200
         #return  np.array([v200 * (self.g(z, theta0) / self.g(c200, theta0)) ** 0.5 for z in x])
@@ -335,7 +467,8 @@ class FDM_scaled(FDM):
         #c200, beta = self.scaling(theta)
         #theta0 = v200, c200, alpha, beta
 
-        theta0 = self.original_param(theta)
+        #theta0 = self.original_param(theta)
+        theta0 = self.scaling(theta[:self.ndim]) # v200, c200, alpha, beta
 
         return super().density(r, theta0)
 
@@ -352,28 +485,103 @@ class FDM_scaled(FDM):
         #    return rhoNFW/ (r/rNFW) / (1 + r/rNFW)**2 
 
 
-    def inverse_transformation(self, theta):
+    def inverse_transformation(self, theta): # v200, m22, alpha
 
-        v200, m22, alpha = theta[:self.ndim]       
+        print('inverse transformation')
+        print('v200, m22, alpha :', theta)
+
+        theta0 = self.scaling(theta) # v200, c200, alpha, beta
+        print('v200, c200, alpha, beta: ', theta0)
+
+        theta_r4 = super().inverse_transformation(theta0)
+        print('rs, rhos, alpha, rNFW: ', theta_r4)
+
+        theta_r2 = self.inv_scaling_rrho(theta_r4) 
+        print('rs, m22, alpha', theta_r2)
+
+        return theta_r2     # rs, m22, alpha
+
+    def direct_transformation(self, theta): # rs, m22, alpha
+
+        print('direct transformation')
+        print('rs, m22, alpha: ', theta)
+    
+        theta0 = self.scaling_rrho(theta) # rs, rhos, alpha, rNFW
+        print('rs, rhos, alpha, rNFW: ', theta0)
+
+        theta1 = super().direct_transformation(theta0)
+        print('v200, c200, alpha, beta: ', theta1)
+
+        theta2 = self.inv_scaling(theta1)
+        print('v200, m22, alpha: ', theta2)
+        return theta2
+
+
+    #def inverse_transformation(self, theta):
+
+    #    v200, m22, alpha = theta[:self.ndim]       
         #c200, beta = self.scaling(v200, m22, alpha)
         #theta0 = v200, c200, alpha, beta
 
-        theta0 = self.original_param(theta)
+        #theta0 = self.original_param(theta)
+     #   theta0 = self.scaling(theta[:self.ndim])
 
-        rs, rhos, alpha, rNFW = super().inverse_transformation(theta0)
+     #   rs, rhos, alpha, rNFW = super().inverse_transformation(theta0)
 
-        print('assert rhos :', rhos, 1.9*0.01 / (m22**2 * rs**4))
-        assert(rhos == 1.9*0.01 / (m22**2 * rs**4))
+     #   print('assert rhos :', rhos, 1.9*0.01 / (m22**2 * rs**4))
+        #assert(rhos == 1.9*0.01 / (m22**2 * rs**4))
 
-        return rs, m22, alpha
+     #   return rs, m22, alpha
 
 
-    def direct_transformation(self, theta):
+    #def direct_transformation(self, theta):
 
-        rs, m22, alpha = theta[:self.ndim]
+        #rs, m22, alpha = theta[:self.ndim]
+
+        #beta = rNFW / rs
+        #theta0 = [None, None, alpha, beta]
+ 
+        #def eq(x):
+        #    return rhos * self.g(x, theta0) - 200 * rho_crit * x**3 / 3
+
+        #x = np.arange(10**-3, 10, 10**-3)
+        #y = np.array([eq(_x) for _x in x])
+        #z = np.array([0 for _x in x])
+        #plt.plot(x, y)
+        #plt.plot(x, z)
+        #plt.show()
+
+        #c200 = scipy.optimize.broyden1(eq, [100], f_tol=1e-6)[0]
+        #v200 = 10 * H0 * c200 * rs       
+        #return v200, c200, alpha, beta
+
+
+        #rs, m22, alpha = theta[:self.ndim]
         #rhos = 1.9*0.01 / (m22**2 * rs**4)
 
-        c200 = 46.3 / (H0 * rho_crit**(1/3) * rs**2 * m22)
+        #c200 = 46.3 / (H0 * rho_crit**(1/3) * rs**2 * m22)
+        #c200 = 10**6 / (5.28 * m22 * rs**2 * rho_crit**(1/3))
+        
+        #c200 = 1 / (53.6 * m22 * rs**2 * rho_crit**(1/3))
+        
+        #c200 = 0.186 / (m22 * (rho_crit**(1/3)) * rs**2)
+
+
+        def eq(x):
+            return rho0 * self.g(x, theta) - 200 * rho_crit * x**3 / 3   # !!! test transfromation correctness !!!
+
+        #x = np.arange(10**-3, 50, 10**-3)
+        #y = np.array([eq(_x) for _x in x])
+        #z = np.array([0 for _x in x])
+        #plt.plot(x, y)
+        #plt.plot(x, z)
+        #plt.show()
+
+        c200 = scipy.optimize.broyden1(eq, [100], f_tol=1e-6)[0] 
+
+
+
+
 
         #beta = rNFW / rs
         #theta0 = [None, None, alpha, beta]
@@ -495,44 +703,53 @@ class TotalLuminous(SimpleLuminous):
 
 def param_compare():
     
-    rs = 1.5
+    #rs = 50
+    #rhos = 0.01
+    #n = 0.5
+    #beta = 0.02
+
+    rs = 1
     alpha = 3
 
     #rhos = np.exp(-2.52)
     #rNFW = 50
-    m22 = 1
+    m22 = 0.1
 
-    model = FDM_scaled
+    model = FDM_scaled 
 
     print('Direct + Inverse')
 
+    #theta = rs, rhos, n, beta
     theta = rs, m22, alpha
     #theta = rs, rhos, alpha, rNFW
 
     theta0 = model().direct_transformation(theta)
     theta1 = model().inverse_transformation(theta0)
 
-    print('r0, rho0 : ', theta)
-    print('v200, c200: ', theta0)
-    print('r0, rho0: ', theta1)
+    #print('r0, rho0 : ', theta)
+    #print('v200, c200: ', theta0)
+    #print('r0, rho0: ', theta1)
 
     print()
     print('Inverse + Direct')
 
-    v200 = 85.83
-    alpha = 2
+    v200 = 100
+    #c200 = 7.49
+
+    alpha = 3
     #c200 = 7.49
     #beta = 20
-    m22 = 1
+    m22 = 0.1
 
+    #theta = v200, c200, n, beta
     #theta = v200, c200, alpha, beta
     theta = v200, m22, alpha
     theta0 = model().inverse_transformation(theta)
     theta1 = model().direct_transformation(theta0)
 
-    print('v200, c200 : ', theta)
-    print('r0, rho0 : ', theta0)
-    print('v200, c200 : ', theta1)
+    #print('v200, c200 : ', theta)
+    #print('r0, rho0 : ', theta0)
+    #print('v200, c200 : ', theta1)
 
 
 def error(func1, func2):
@@ -543,8 +760,8 @@ def error(func1, func2):
 
 def plot_2velocities(r, v1, v2, model_name):
    fig, ax = plt.subplots()
-   ax.plot(r, v2, label = 'numerical')
    ax.plot(r, v1, label = 'analytical')
+   ax.plot(r, v2, label = 'numerical')
    ax.legend()
    ax.set_title(model_name, fontsize = 16)
    ax.set_xlabel('r', fontsize = 14)
@@ -562,19 +779,24 @@ def mass_test():
     #theta = [2, 0.01, 3, 10]
     #theta = [5, 0.2, 7, 150]
 
-    v200 = 100
+    v200 = 10
     #c200 = 1
-    alpha = 3
+    #n = 0.5
+    #beta = 0.02
+    alpha = 1
     #beta = 20
     m22 = 1
 
+    #theta = [v200, c200, n, beta]
     theta = [v200, m22, alpha]
     #theta = [v200, c200, alpha, beta]
-    r = np.arange(10**-5, 10, 10**-3)
+    r = np.arange(1, 10, 1)
 
     for model in [FDM_scaled]:
         v_eq = model().velocity(r, theta)
         v_num = [kGrav * ( quad( lambda x: model().density(x, theta = theta)*x**2,  0, _r )[0] /_r) ** 0.5 for _r in r]
+        #v_num = kGrav * ( quad( lambda x: model().density(x, theta = theta)*x**2,  0, r)[0] /r) ** 0.5
+
 
         print(model.__name__ , 'model :' , error(v_eq, v_num))
         plot_2velocities(r, v_eq, v_num, model.__name__)
@@ -583,6 +805,9 @@ def mass_test():
 
 
 if __name__ == "__main__":
+
+    #i = 4 * 3.14 * 1.9 * FDM().I_sol(1)
+    #print('I_sol', i)
 
     #mass_test()
     param_compare()
