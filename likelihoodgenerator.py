@@ -33,8 +33,20 @@ def check_sqrt(array):
 ####################################################
 plummer=lambda r,ra: (1+(r/ra)**2)**(-5./2.) #plammer profile with ra half-light radius
 ####################################################
+def m200(c200, v200):
+    
+    r200 = v200 / (10 * H0)
+    
+    m200 = (4*np.pi/3) * 200 * (rho_crit * 1e9) * r200**3
+    
+    return m200
 
 ####################################################
+
+def logc200_m200(log10m200):
+    return 0.905 - 0.101 * (log10m200 + np.log10(h) - 12)
+####################################################        
+
 sec_to_rad = 1 / 206265
 ####################################################
 
@@ -88,10 +100,10 @@ class LikelihoodGenerator:
 
             self.data = tuple(self.data)
             self.bulge = is_not_zero(self.data[5])
-            MLums = np.array(self.data[3:6])[:,-1]**2*self.data[0][-1]/G_N
+            mlums = np.array(self.data[3:6])[:,-1]**2*self.data[0][-1]/G_N
             if not self.bulge:
-                MLums = MLums[:2]
-            self.MLums = MLums
+                mlums = mlums[:2]
+            self.mlums = mlums
 
 
     def set_model(self, model, lum_model, **kwards):
@@ -181,7 +193,6 @@ class LikelihoodGenerator:
 
         #return np.sum(gauss(v_obs, self.total_velocity(r_obs, gas, disk, bulge, theta), err_obs))
 
-
     def log_probability(self, theta):
         lp = self.log_prior(theta)
         if not np.isfinite(lp):
@@ -193,8 +204,6 @@ class LikelihoodGenerator:
 
         #log_prob = lp + self.log_likelihood(theta)
         #return log_prob 
-
-
 
     # Prior transform
 

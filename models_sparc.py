@@ -4,9 +4,12 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
-from scipy.special import betainc
+#from scipy.special import betainc, gamma
+
+
 import scipy.optimize
 from scipy.interpolate import interp1d
+from scipy.integrate import quad
 from scipy.special import *
 import galpynamics
 import galpynamics.dynamic_component as dc
@@ -43,6 +46,10 @@ plummer=lambda r,ra: (1+(r/ra)**2)**(-5./2.) #plammer profile with ra half-light
 
 xiPlum = lambda R, ra: 3/4*ra*(1+(R/ra)**2.)**(-2.) 
 
+@np.vectorize
+def betainc(a,b,t):
+    f = lambda u: u**(a-1) * (1 - u)**(b-1) 
+    return quad(f, 0, t )[0]
 
 # --------------------------------------------
 #        ***  Dark matter models  ***
@@ -76,7 +83,7 @@ class Model:
     def g(self, x, theta = None):  
         return self.mu(x, theta) / x
     
-    def velocity(self, r, theta):
+    def velocity(self, r, theta, *args):
         v200, c200 = theta[:2]
         #c200 = 10 ** logc200
         x = r * 10 * H0 * c200 / v200
@@ -573,50 +580,62 @@ class FDM_scaled(FDM):
         return slos
 
 
+
 class DC14(Model):
 
     def __init__(self, **kwards):
         self.ndim = 2
         self.parameters = ['$v_{200}$', '$c_{200}$']
-        # self.parameters = ['$v_{200}$', '$m_{22}$', r'$\alpha$']
-        # self.bulge = kwards['buldge']
-        self.MLums = kwards['MLums']
+        kwards.setdefault('di', None)
+        self.mlums = kwards['mlums']
+        self.di = kwards['di']
         
-        
-        # return [v200_init, m22_init, alpha_init]
 
-    def bounds(self):
-        return [[10, 500], [0.0,1000]]
-        # return [[10, 500], [0.01, 100], [1, 7]]
-
-    def transform(self, theta):
-
-        v200, c200 = theta[:2]
-
-        r200 = c200*v200/(10*c200*H0)
-        M200 = 4 * np.pi/3*200* rho_crit * r200**3
-
-
-        ndim_mlums = len(self.MLums)
-        Y = np.concatenate((np.array([1]),np.array(theta[-ndim_mlums:])))
-        Mstar = sum(Y[1:]*self.MLums[1:])
-        Mbar = sum(Y*self.MLums)
-        
-        X = Mstar/(Mbar+M200)
-        if X<=-4.1:
+    @staticmethod
+    def transform(Xstar):
+        if Xstar<=-4.1:
             return 1.,3.,1.
-        if X>=-1.3: X = -1.3
-        alpha = 2.94 - np.log10(10**((X+2.33)*(-1.08)) + (10**((X+2.33)*2.29)))
-        beta = 4.23 + 1.34*X + 0.26*X**2
-        gamma = -0.06 + np.log10(10**((X+2.56)*(-0.68)) + 10**(X+2.56))
+        
+        alpha = 2.94 - np.log10(10**((Xstar+2.33)*(-1.08)) + (10**((Xstar+2.33)*2.29)))
+        beta = 4.23 + 1.34*Xstar + 0.26*Xstar**2
+        gamma = -0.06 + np.log10(10**((Xstar+2.56)*(-0.68)) + 10**(Xstar+2.56))
+        
         return alpha, beta, gamma
 
-    def mu(self, x, theta):
-        alpha, beta, gamma = self.transform(theta)
+    def mu(self, x, Xstar):
+
+        alpha, beta, gamma = self.transform(Xstar)
         epsl = x**alpha/(1 + x**alpha)
         a = (3 - gamma)/alpha
-        b = (b-3)/alpha
-        return 1/alpha*(betainc(a, b+1, epsl) + betainc(a+1,b, epsl))
+        b = (beta - 3)/alpha
+
+        return betainc(a, b+1, epsl) + betainc(a+1,b, epsl)
+
+    def g(self, x, Xstar):  
+        return self.mu(x, Xstar) / x    
+    
+    def velocity(self, r, theta, *args):
+        
+        v200, c200 = theta[:2]
+        d = theta[2]
+        r200 = v200/(10*H0)
+        m200 = 4 * np.pi/3 * 200 * rho_crit * r200**3 *10**9 #10**9 -- pc^-3 to kpc^-3 factor
+        
+         
+        #ndim_mlums = len(self.mlums)
+        Y = np.array(theta[self.ndim + 2 :])
+        mstar = sum(Y*self.mlums[1:])
+        if self.di!=None:
+            mstar = mstar * (d/self.di)**2
+        #mbar = self.mlums[0] * (d/self.di)**2 + mstar
+
+        #X = np.log10(mstar/(mbar+m200))
+        Xstar = np.log10(mstar/(m200)) #like in Allaert-17
+        #c200 = 10 ** logc200
+        x = r * 10 * H0 * c200 / v200
+        if Xstar>-1.3:
+            return local_inf
+        return  v200 * (self.g(x, Xstar) / self.g(c200, Xstar)) ** 0.5
 
 
 
